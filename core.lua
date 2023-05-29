@@ -476,6 +476,7 @@ end
 
 
 update_config = function()
+	--declared local above
 	lib.unlock_class("babel", "0", babel_key)
 	
 	babel.smart_config.mod_ver_disp.display = babel.fetch(babel_ref_key, 7, "Version ") .. lib.get_latest("babel")
