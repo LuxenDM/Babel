@@ -25,19 +25,47 @@ local supported_lang = {
 	'pt',
 }
 
+local babel_key = "0"
+
+local function update_config() end
+
 local babel = {
 	CCD1 = true, --Common Content Descriptor version 1
 	open = nil,
 	config = nil,
 	smart_config = {
+		title = "",
 		cb = function(id, val)
 			if settings[id] then
-				settings[settings[id]] = val
-				gkini.WriteString("Babel", settings[id], val)
+				settings[id] = val
+				gkini.WriteString("Babel", id, val)
+				update_config()
 			end
 		end,
+		rule = {
+			type = "rule",
+		},
+		spacer = {
+			type = "spacer",
+		},
+		mod_header = {
+			type = "header",
+			display = "Babel",
+		},
+		mod_ver_disp = {
+			type = "text",
+			display = "Version " .. lib.get_latest("babel"),
+			align = "center",
+		},
+		mod_descriptor = {
+			type = "text",
+			display = "Multi-language support for mods",
+		},
 		current_language = {
 			'en',
+			'es',
+			'fr',
+			'pt',
 			type = "dropdown",
 			display = "Current Language: ",
 			default = 1,
@@ -47,8 +75,14 @@ local babel = {
 			type = "toggle",
 			display = "Preload all language tables:",
 		},
-		[1] = 'current_language',
-		[2] = 'precache',
+		[1] = 'mod_header',
+		[2] = 'mod_ver_disp',
+		[3] = 'mod_descriptor',
+		[4] = 'rule',
+		[5] = 'spacer',
+		
+		[6] = 'current_language',
+		[7] = 'precache',
 	},
 	commands={'babel'},
 	manifest={
@@ -56,7 +90,6 @@ local babel = {
 		"plugins/Babel/core.lua",
 		"plugins/Babel/babel.ini",
 		"plugins/Babel/lang/en.ini",
-		"plugins/Babel/lang/en-edit.ini",
 		"plugins/Babel/lang/es.ini",
 		"plugins/Babel/lang/fr.ini",
 		"plugins/Babel/lang/pt.ini",
@@ -113,7 +146,7 @@ babel.register = function(path_string, lang_list)
 	local excess_flag = false
 	
 	for i=1, #lang_list do
-		lang_code = lang_list[i]
+		local lang_code = lang_list[i]
 		if type(lang_code) == "string" then
 			if gksys.IsExist(path_string .. lang_code .. ".ini") then
 				local lang_file = path_string .. lang_code .. ".ini"
@@ -158,7 +191,7 @@ babel.add_new_lang = function(ref_id, path, lang)
 	
 	]]--
 	
-	if type(path) ~= "string" and type("lang") ~= "string" then
+	if type(path) ~= "string" or type("lang") ~= "string" then
 		return false
 	end
 	
@@ -252,15 +285,21 @@ babel.register_custom_lang = function(path, custom_lang)
 		
 		lib.log_error("[Babel] Language registered as selectable for user!")
 		table.insert(supported_lang, custom_lang)
+		table.insert(babel.smart_config.current_language, custom_lang)
 		
 		--update smart_config in case the user's preferred language is this one
 		for k, v in ipairs(supported_lang) do
-			babel.smart_config.current_language[k] = v
 			if v == settings.current_language then
 				babel.smart_config.current_language.default = k
 			end
 		end
 		
+		if babel_key ~= "0" then 
+			--re-push class to update ccd1
+			lib.unlock_class("babel", "0", babel_key)
+			lib.set_class("babel", "0", babel)
+			lib.lock_class("babel", "0", babel_key)
+		end
 		
 	end
 end
@@ -417,12 +456,49 @@ end
 --[[
 	Why do we use this loop instead of the appropriate babel.register?
 	1: I was making sure add_new_lang() worked correctly
-	2: makes adding new languages easier; I only have to adjust one location in the file instead of two
+	2: makes adding new languages easier; I only have to adjust one location in the file instead of two (this failed)
 	
 	If you want to add extra languages to babel itself, use register_custom_lang() until the language is added officially
 ]]--
 
+for k, v in ipairs(supported_lang) do
+	if v == settings.current_language then
+		babel.smart_config.current_language.default = k
+	end
+end
+
+
+
+
+
+
+
+
+
+update_config = function()
+	lib.unlock_class("babel", "0", babel_key)
+	
+	babel.smart_config.mod_ver_disp.display = babel.fetch(babel_ref_key, 7, "Version ") .. lib.get_latest("babel")
+	babel.smart_config.mod_descriptor.display = babel.fetch(babel_ref_key, 8, "Multi-language support for mods")
+	babel.smart_config.current_language.display = babel.fetch(babel_ref_key, 9, "Current Language: ")
+	babel.smart_config.precache.display = babel.fetch(babel_ref_key, 3, "Preload language tables: ")
+	babel.description = babel.fetch(babel_ref_key, 10, babel.description)
+	
+	for k, v in ipairs(supported_lang) do
+		if v == settings.current_language then
+			babel.smart_config.current_language.default = k
+		end
+	end
+	
+	babel.smart_config.precache[1] = settings.precache
+	
+	lib.set_class("babel", "0", babel)
+	lib.lock_class("babel", "0", babel_key)
+end
+
 lib.set_class('babel', '1.0.0', babel)
-lib.lock_class('babel', '1.0.0')
+babel_key = lib.lock_class('babel', '1.0.0')
 
 RegisterUserCommand("babel", babel.open)
+
+update_config()
