@@ -1,11 +1,16 @@
 lib.log_error("[Babel] now loading!")
 
 local settings = {
-	current_language = gkini.ReadString("Babel", "current_language", "en"),
+	current_language = gkini.ReadString("Babel", "current_language", ""),
 	precache = gkini.ReadString("Babel", "precache", "NO"),
 	[1] = 'current_language',
 	[2] = 'precache',
 }
+
+if config.current_language == "" then
+	config.current_language = gkini.ReadString("Vendetta", "locale", "en")
+	gkini.WriteString("Babel", "current_language", config.current_language)
+end
 
 for i=1, #settings do
 	lib.log_error("	" .. (settings[i] or "???") .. " >> " .. (settings[settings[i]] or "???"))
@@ -447,19 +452,8 @@ end
 
 babel.config = babel.open
 
-babel_ref_key = babel.register('plugins/Babel/lang/', {'en'})
-
 --load officially supported langs into Babel
-for i=1, #supported_lang do
-	babel.add_new_lang(babel_ref_key, "plugins/Babel/lang/", supported_lang[i])
-end
---[[
-	Why do we use this loop instead of the appropriate babel.register?
-	1: I was making sure add_new_lang() worked correctly
-	2: makes adding new languages easier; I only have to adjust one location in the file instead of two (this failed)
-	
-	If you want to add extra languages to babel itself, use register_custom_lang() until the language is added officially
-]]--
+babel_ref_key = babel.register('plugins/Babel/lang/', {'en', 'es', 'fr', 'pt'})
 
 for k, v in ipairs(supported_lang) do
 	if v == settings.current_language then
@@ -494,11 +488,10 @@ update_config = function()
 	babel.smart_config.precache[1] = settings.precache
 	
 	lib.set_class("babel", "0", babel)
-	lib.lock_class("babel", "0", babel_key)
+	lib.lock_class("babel", "0", babel_ref_key)
 end
 
-lib.set_class('babel', '1.0.0', babel)
-babel_key = lib.lock_class('babel', '1.0.0')
+lib.set_class('babel', '0', babel)
 
 RegisterUserCommand("babel", babel.open)
 
