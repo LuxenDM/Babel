@@ -7,9 +7,9 @@ local settings = {
 	[2] = 'precache',
 }
 
-if config.current_language == "" then
-	config.current_language = gkini.ReadString("Vendetta", "locale", "en")
-	gkini.WriteString("Babel", "current_language", config.current_language)
+if settings.current_language == "" then
+	settings.current_language = gkini.ReadString("Vendetta", "locale", "en")
+	gkini.WriteString("Babel", "current_language", settings.current_language)
 end
 
 for i=1, #settings do
