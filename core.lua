@@ -1,4 +1,6 @@
-lib.log_error("[Babel] now loading!")
+
+local babel_ver = "1.2.0"
+local babel_path = lib.get_path("babel", babel_ver)
 
 local settings = {
 	current_language = gkini.ReadString("Babel", "current_language", ""),
