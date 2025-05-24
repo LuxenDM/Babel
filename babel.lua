@@ -170,22 +170,48 @@ local tower = {}
 	}
 ]]--
 
-babel.add_translation = function(path, lang_code)
-	--adds a new language to Babel itself.
-	local realfile = path .. lang_code .. ".ini"
-	local status = babel.add_new_lang(lang_key, path, lang_code)
-	
-	if status then
-		table.insert(langs, lang_code)
-		langs[lang_code] = {
-			path = path,
-			file = lang_code .. ".ini"
-			flag = gkini.ReadString2('babel', 'flag', 'flag_null.png', realfile),
-		}
-	end
+local gkrs2 = function(path, header, def_value)
+	return gkini.ReadString2("babel", header, def_value or "null", path)
 end
 
-babel.register_custom_lang = babel.add_translation
+private.read_ini = function(path)
+	--reads an INI file and returns relevant babel data in a table
+	local ini_data = {
+		path = path,
+		api = gkrs2(path, "api", "1"),
+		lang_code = gkrs2(path, "lang_code"),
+		language = gkrs2(path, "0"),
+		flag = gkrs2(path, "flag"),
+		target = gkrs2(path, "target"),
+	}
+
+	if ini_data.language == "null" then
+		return false, "invalid INI"
+	end
+
+	return ini_data
+end
+
+private.add_translation = function(path, lang_code)
+	--adds a new language to Babel itself.
+	local realfile = path .. lang_code .. ".ini"
+	local data = private.read_ini(realfile)
+	data.lang_code = (data.lang_code == "null" and lang_code) or data.lang_code
+	
+	if langs[data.lang_code] and langs[data.lang_code].path ~= "null" then
+		return false, "language already present"
+	end
+	
+	if data.target ~= "babel" then
+		data.path = "null"
+	end
+
+	langs[data.lang_code] = data
+
+	update_class()
+end
+
+private.register_custom_lang = private.add_translation
 --this keyword will be deprecated eventually. use add_translation instead!
 
 babel.add_new_lang = function(ref_id, path, lang)
@@ -193,7 +219,7 @@ babel.add_new_lang = function(ref_id, path, lang)
 	used to add a new language to an existing shelf
 	other mods must give an API to allow this, as ref_id is a key
 	
-	path: path/to/file (but don't include file itself)
+	path: path/to/file/ (but don't include file itself)
 	lang: language code/file name (do not include .ini)
 	
 	]]--
