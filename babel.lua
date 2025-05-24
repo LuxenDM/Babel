@@ -1,39 +1,56 @@
 local babel_ver = "1.2.0"
 local babel_path = lib.get_path("babel", babel_ver)
 
-local settings_read_flag = false
-local settings = {
-	current_language = "",
+local cp = function(msg)
+	lib.log_error("[babel] " .. msg, 1, "babel", babel_ver)
+end
+
+local cerr = function(msg)
+	lib.log_error("[babel] " .. msg, 4, "babel", babel_ver)
+end	
+
+local config = {
+	current_language = "en",
 	precache = "NO",
 }
+local cfread = function()
+	for i, v in pairs(config) do
+		config[i] = gkini.ReadString("babel", i, v)
+	end
+end
+cfread()
+
+local cfwrite = function()
+	for i, v in pairs(config) do
+		gkini.WriteString("babel", i, v)
+	end
+end
 
 local langs = {
-	'en',
-	'es',
-	'fr',
-	'pt',
+	--defines languages supported, selectable, and used by Babel directly.
+	en = 1,
+	[1] = {
+		lang_code = "en",
+		language = "English",
+		flag = babel_path .. "assets/flag_en.png",
+		path = babel_path .. "lang/en.ini",
+	},	
 }
 
-local babel = {} --public class table
+local public = {} --public class table
 local private = {} --private values passed to secondary modules
 
-local lang_key = "null"
+local babel_private_key = lib.generate_key()
 
 local private.bstr = function(id, val)
-	return babel.fetch(lang_key, id, val)
+	if not public.fetch then
+		return val
+	end
+	return babel.fetch(babel_private_key, id, val)
 end
 
 local update_class
 update_class = function()
-	
-	if not settings_read_flag then
-		settings_read_flag = true
-		
-		for option, default in pairs(settings) do
-			settings[option] = gkini.ReadString("babel", option, default)
-		end
-	end
-	
 	local class = {
 		CCD1 = true,
 		open = nil,
@@ -41,6 +58,7 @@ update_class = function()
 		description = private.bstr(0, "Babel is a mod library for providing easy translation table support to other mods. To select your preferred language, open the Babel settings menu or select your preferred language from the smart-configuration tool provided by your LME environment. \nMods must provide a language table for your selected language, or a default fallback will be used instead. Babel itself provides English, Spanish, French, and Portuguese language tables by default, though more can be easily added if available."),
 		manifest = {
 			babel_path .. "/babel.lua", --core library
+			babel_path .. "/babel_gui.lua", --lightweight front end placeholder
 			babel_path .. "/babel.ini", --LME declaration
 			babel_path .. "/lang/en.ini", --Babel English table
 			babel_path .. "/lang/es.ini", --Babel Spanish table
@@ -115,17 +133,17 @@ end
 local load_module = function(file_path)
 	local valid_file_path = lib.find_file(babel_path .. file_path)
 	if valid_file_path then
-		lib.log_error("	loading sub_module " .. valid_file_path, "babel", babel_ver, 1)
+		cp("loading sub_module " .. valid_file_path)
 		
 		local file_f, err = loadfile(valid_file_path)
 		
 		if not file_f then
-			lib.log_error("Failure loading sub_module: " .. tostring(err), "babel", babel_ver, 3)
+			cerr("Failure loading sub_module: " .. tostring(err))
 		else
-			file_f(babel, private)
+			file_f(public, private)
 		end
 	else
-		lib.log_error("Failure finding sub_module " .. file_path, "babel", babel_ver, 3)
+		cerr("Failure finding sub_module " .. file_path)
 	end
 end
 
