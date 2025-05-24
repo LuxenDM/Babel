@@ -28,12 +28,15 @@ end
 
 local langs = {
 	--defines languages supported, selectable, and used by Babel directly.
+	English = 1,
 	en = 1,
 	[1] = {
+		api = "2",
 		lang_code = "en",
 		language = "English",
 		flag = babel_path .. "assets/flag_en.png",
 		path = babel_path .. "lang/en.ini",
+		target = "babel",
 	},	
 }
 
@@ -214,7 +217,7 @@ end
 private.register_custom_lang = private.add_translation
 --this keyword will be deprecated eventually. use add_translation instead!
 
-babel.add_new_lang = function(ref_id, path, lang)
+private.add_new_lang = function(ref_id, path, lang)
 	--[[
 	used to add a new language to an existing shelf
 	other mods must give an API to allow this, as ref_id is a key
@@ -225,7 +228,7 @@ babel.add_new_lang = function(ref_id, path, lang)
 	]]--
 	
 	if type(path) ~= "string" or type(lang) ~= "string" then
-		return false, "bad argument format"
+		return false, "argument 2 or 3 not formatted as string"
 	end
 	
 	local realfile = path .. lang .. ".ini"
