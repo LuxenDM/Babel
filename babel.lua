@@ -355,6 +355,10 @@ babel.set_config = function(option, val)
 	end
 	
 	settings[option] = tostring(val)
+	
+	for option, value in pairs(settings) do
+		gkini.WriteString("babel", option, value)
+	end
 end
 
 
