@@ -1,1 +1,3 @@
+This project has been deprecated in favor of lexicon ( https://github.com/LuxenDM/lexicon )
+
 Babel is a simple translation system for supported mods. If a mod provides a table of translations for a provided language and references each line by key, it can provide a language selection for the user. If the requested language module is not available for the given plugin, the plugin's default option will be used.
